@@ -20,24 +20,21 @@ def dilation_or_erosion(binary_image, se, hit, erode_border=False):
     for i in range(0, height):
         for j in range(0, width):
             se_i = -1
-            se_j = -1
             do_hit_or_fit = False
             for p in range(-se_center, se_center + 1):
                 se_i += 1
-                if i + p >= height or i + p < 0:
-                    if not hit and erode_border and se[se_i][se_j]:
-                        do_hit_or_fit = True
-                        break
-                    continue
+                se_j = -1
                 for q in range(-se_center, se_center + 1):
                     se_j += 1
-                    if j + q >= width or j + q < 0:
-                        if not hit and erode_border and se[se_i][se_j]:
+                    if not se[se_i][se_j]:
+                        continue
+                    if j + q >= width or j + q < 0 or i + p >= height or i + p < 0:
+                        if not hit and erode_border:
                             do_hit_or_fit = True
                             break
                         continue
-                    if (hit and binary_image[i + p][j + q] == 1) or \
-                       (not hit and binary_image[i + p][j + q] == 0):
+                    if (hit and binary_image[i + p][j + q]) or \
+                       (not hit and not binary_image[i + p][j + q]):
                         do_hit_or_fit = True
                         break
                 if do_hit_or_fit:
@@ -48,6 +45,64 @@ def dilation_or_erosion(binary_image, se, hit, erode_border=False):
                 else:
                     new_image[i][j] = 0
     return new_image
+
+
+def subtract_images(image1, image2):
+    """Given 2 binary images of same size, do image1 - image2.
+    For every pixel, 1 - 1 = 0, 0 - 0 = 0, 1 - 0 = 1 and 0 - 1 = 0.
+
+    :param image1: a binary image, a x*y matrix of 0s and 1s.
+    :param image2: a second binary image, a x*y matrix of 0s and 1s.
+    :return: image1 - image2.
+    """
+    height = len(image1)
+    width = len(image1[0])
+    new_image = np.copy(image1)
+    for i in range(0, height):
+        for j in range(0, width):
+            if image2[i][j]:
+                new_image[i][j] = 0
+    return new_image
+
+
+def add_images(image1, image2):
+    """Given 2 binary images of same size, do image1 + image2.
+    For every pixel, 1 + 1 = 1, 0 + 0 = 0, 1 + 0 = 1 and 0 + 1 = 1.
+
+    :param image1: a binary image, a x*y matrix of 0s and 1s.
+    :param image2: a second binary image, a x*y matrix of 0s and 1s.
+    :return: image1 + image2.
+    """
+    height = len(image1)
+    width = len(image1[0])
+    new_image = np.copy(image1)
+    for i in range(0, height):
+        for j in range(0, width):
+            if image2[i][j]:
+                new_image[i][j] = 1
+    return new_image
+
+
+def skeletonization(binary_image, se):
+    """Apply Lantuejoul's skeletonization method to a binary representation of an image.
+
+    :param binary_image: a x*y matrix of 0s and 1s. 0 represents black (background); 1, white (the objects).
+    :param se: the structuring element. A n*n square of 0s and 1s, n must be an odd number.
+    :return: new image with skeletonization applied.
+    """
+    height = len(binary_image)
+    width = len(binary_image[0])
+    skeletonizated_image = np.zeros(shape=(height, width))
+    eroded_image = np.copy(binary_image)
+    while True:
+        eroded_image = dilation_or_erosion(eroded_image, se, False, erode_border=True)
+        opened_image = dilation_or_erosion(eroded_image, se, True)
+        subtracted_image = subtract_images(binary_image, opened_image)
+        skeletonizated_image = add_images(skeletonizated_image, subtracted_image)
+        if not np.count_nonzero(opened_image):
+            break
+        binary_image = np.copy(eroded_image)
+    return skeletonizated_image
 
 
 if __name__ == "__main__":
@@ -71,4 +126,5 @@ if __name__ == "__main__":
     se_3 = np.ones(shape=(3, 3))
     print(test_image)
     print(' ')
-    print(dilation_or_erosion(test_image, se_3, True))
+    # print(dilation_or_erosion(test_image, se_3, True))
+    print(skeletonization(test_image, se_3))

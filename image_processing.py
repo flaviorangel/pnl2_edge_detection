@@ -3,17 +3,47 @@ import math
 import numpy as np
 
 
-def prepare_image(image_address):
+def prepare_image(image_address, binary=False, switch_black_white=False, print_flag=False):
     """Given an image address, return it as an array.
 
     :param image_address: Location of the image.
+    :param binary: if True, return binary array.
+    :param switch_black_white: if True, switch 0s and 1s in binary images.
+    :param print_flag: if True, will print image as array before returning.
     :return: Numpy array, with size equal to the one of the image.
     """
     im = Image.open(image_address)
     width, height = im.size
     print('this is the image you just loaded:', image_address, im.mode, height, 'x', width)
-    image_as_array = np.asarray(im)
+    if binary:
+        im = im.convert('1')
+    image_as_array = np.asarray(im, dtype='uint8')
+    if binary and switch_black_white:
+        image_as_array = (image_as_array - (image_as_array * 2)) + 1
+    if print_flag:
+        print('')
+        print(image_as_array)
     return image_as_array
+
+
+def save_image(image_as_array, suffix, new_address, binary_image=False, print_flag=True):
+    """Saves a numpy array as an image in the given address.
+    Address must include name saving type (i.e., png, jpg, gif...).
+
+    :param image_as_array: a numpy array
+    :param suffix: string. Any suffix to be added to the name given in address.
+    :param new_address: string. Where to save the image. Must include name and type.
+    :param binary_image: boolean. If True, the given array has only 0s and 1s.
+    :param print_flag: boolean. If True, it will print where the image was saved.
+    """
+    if binary_image:
+        image_as_array = image_as_array * 255
+    return_image = Image.fromarray(image_as_array)
+    if return_image.mode != 'RGB':
+        return_image = return_image.convert('RGB')
+    return_image.save(new_address[:-4] + "_" + suffix + new_address[-4:])
+    if print_flag:
+        print("image saved: " + new_address[:-4] + "_" + suffix + new_address[-4:])
 
 
 def interpol_lin(image_as_array, location_matrix, transformation_name, height, width, my_image, black=False):
