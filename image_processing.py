@@ -3,6 +3,16 @@ import math
 import numpy as np
 
 
+def switch_black_and_white(binary_image_array):
+    """Takes a binary image as array and switch 0s and 1s.
+
+    :param binary_image_array: a x*y matrix in which every position is either 0 or 1.
+    :return: save image, but with 0s and 1s switched.
+    """
+    binary_image_array = (binary_image_array - (binary_image_array * 2)) + 1
+    return binary_image_array
+
+
 def prepare_image(image_address, binary=False, switch_black_white=False, print_flag=False):
     """Given an image address, return it as an array.
 
@@ -19,7 +29,7 @@ def prepare_image(image_address, binary=False, switch_black_white=False, print_f
         im = im.convert('1')
     image_as_array = np.asarray(im, dtype='uint8')
     if binary and switch_black_white:
-        image_as_array = (image_as_array - (image_as_array * 2)) + 1
+        image_as_array = switch_black_and_white(image_as_array)
     if print_flag:
         print('')
         print(image_as_array)
