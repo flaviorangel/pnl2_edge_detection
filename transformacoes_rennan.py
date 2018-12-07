@@ -128,6 +128,12 @@ def passa_banda(imagem_frequencia, centro, r_min, r_max):
             elif r<r_min:
                 imagem_frequencia[y,x]=0
 
+def verifica_e_remove_pixel_proximo(x,y,imagem):
+    for x1 in range(x-1,x-2):
+        for y1 in range(y-1, y-2):
+            imagem[y1,x1]=0
+
+
 
 #ordem das cores na imagem
 #(b, g, r) = imagem[0,0]
@@ -138,12 +144,12 @@ def passa_banda(imagem_frequencia, centro, r_min, r_max):
 
 if __name__ == '__main__':
     tipo_da_transformacao="Hough"
-    nome_da_imagem="janela2"
+    nome_da_imagem="mikasa_cosplay"
 
     TRANSFORMACAO="hough"
 
     imagem = cv2.imread("imagens/"+nome_da_imagem+".jpg")
-    print imagem.shape
+    print (imagem.shape)
 
     #cria uma imagem preta com o tamanho da imagem original para armazenar as alterações feitas na imagem original
     imagem_alterada = np.zeros((imagem.shape[0], imagem.shape[1], 3), dtype=np.uint8)
@@ -202,31 +208,37 @@ if __name__ == '__main__':
     elif TRANSFORMACAO=="hough":
         edges = cv2.Canny(imagem_alterada,50,150,apertureSize = 3)
 
-        cv2.imshow("canny", edges)
+        #cv2.imshow("canny", edges)
+        p=1
 
-        lines = cv2.HoughLines(edges,1,np.pi/180,260)
+        if not(p):
+            lines = cv2.HoughLines(edges,1,np.pi/180,260)
+            print (lines)
+            for line in lines:
+                for rho,theta in line:
+                    a = np.cos(theta)
+                    b = np.sin(theta)
+                    x0 = a*rho
+                    y0 = b*rho
+                    x1 = int(x0 + 1000*(-b))
+                    y1 = int(y0 + 1000*(a))
+                    x2 = int(x0 - 1000*(-b))
+                    y2 = int(y0 - 1000*(a))
 
-        print lines
+                    cv2.line(edges,(x1,y1),(x2,y2),(255),2)
+        else:
+            minLineLength = 100
+            maxLineGap = 10
+            lines = cv2.HoughLinesP(edges,1,np.pi/180,100,minLineLength,maxLineGap)
+            print (lines)
+            for line in lines:
+                for x1,y1,x2,y2 in line:
+                    for x in range(x1,x2):
+                        y=((y2-y1)+0.0/(x2-x1)+0.0)*(x-x1)+y1
+                        verifica_e_remove_pixel_proximo(x,int(y),edges)
+                    cv2.line(edges ,(x1,y1),(x2,y2),(255),2)
 
-        for line in lines:
-            for rho,theta in line:
-                a = np.cos(theta)
-                b = np.sin(theta)
-                x0 = a*rho
-                y0 = b*rho
-                x1 = int(x0 + 1000*(-b))
-                y1 = int(y0 + 1000*(a))
-                x2 = int(x0 - 1000*(-b))
-                y2 = int(y0 - 1000*(a))
-
-                cv2.line(imagem,(x1,y1),(x2,y2),(0,0,255),2)
-        # minLineLength = 10
-        # maxLineGap = 100
-        # lines = cv2.HoughLinesP(edges,1,np.pi/180,100,minLineLength,maxLineGap)
-        # for x1,y1,x2,y2 in lines[0]:
-        #     cv2.line(imagem ,(x1,y1),(x2,y2),(0,0,255),2)
-
-    cv2.imshow("retorno", imagem)
+    cv2.imshow("retorno", edges)
     cv2.waitKey(0)
 
     #cv2.imwrite("transformacoes/"+tipo_da_transformacao+"_"+nome_da_imagem+".jpg", imagem_alterada)
