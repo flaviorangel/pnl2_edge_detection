@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 import math
 from matplotlib import pyplot as plt
+import os
 
 
 ###########FUNÇÕES AUXILIARES#############
@@ -101,6 +102,33 @@ def twirl(centro, imagem, imagem_alterada, alpha):
                         cor=interpolacao_bilinear(posicao_final, imagem)
                         imagem_alterada[y,x]=cor
 
+def sobel(imagem, imagem_alterada):
+    #as mascaras parescem estar trocadas, mas nossa imagem a primeira coordenada é o y, e a segunda é o x, pelo cv2
+    #logo para ajustar, eu tive que inverter as matrizes para se adequar aos dados
+    mascaraX=[[-1, -2, -1],[0,0,0],[1,2,1]]
+    mascaraY=[[1,0,-1],[2,0,-2],[1,0,-1]]
+    for y in range(1,imagem_alterada.shape[0]-1):
+        for x in range(1,imagem_alterada.shape[1]-1):
+            gx=np.sum(mascaraX*imagem[y-1:y+2, x-1:x+2])
+            gy=np.sum(mascaraY*imagem[y-1:y+2, x-1:x+2])
+            grad=np.sqrt(gx*gx+gy*gy)
+            imagem_alterada[y,x]=grad
+
+def sobel_treshhold(imagem, imagem_alterada, treshhold):
+    #as mascaras parescem estar trocadas, mas nossa imagem a primeira coordenada é o y, e a segunda é o x, pelo cv2
+    #logo para ajustar, eu tive que inverter as matrizes para se adequar aos dados
+    mascaraX=[[-1, -2, -1],[0,0,0],[1,2,1]]
+    mascaraY=[[1,0,-1],[2,0,-2],[1,0,-1]]
+    for y in range(1,imagem_alterada.shape[0]-1):
+        for x in range(1,imagem_alterada.shape[1]-1):
+            gx=np.sum(mascaraX*imagem[y-1:y+2, x-1:x+2])
+            gy=np.sum(mascaraY*imagem[y-1:y+2, x-1:x+2])
+            grad=np.sqrt(gx*gx+gy*gy)
+            if grad>=treshhold:
+                imagem_alterada[y,x]=255
+            else:
+                imagem_alterada[y,x]=0
+
 
 def passa_baixa(imagem_frequencia, centro, r_max):
     for y in range(0, imagem_frequencia.shape[0]): #percorre linhas da imagem alterada
@@ -133,6 +161,60 @@ def verifica_e_remove_pixel_proximo(x,y,imagem):
         for y1 in range(y-1, y-2):
             imagem[y1,x1]=0
 
+def Fourier(imagem_alterada, passa, r_max=100, r_min=50 ):
+    f = np.fft.fft2(imagem_alterada)
+    fshift = np.fft.fftshift(f)
+
+    #cv2.imshow("fshift", fshift.astype(np.uint8))
+
+    #print "AAAAAAAAAAA"
+    #print fshift.shape
+
+    #magnitude_spectrum = (20*np.log(np.abs(fshift))).astype(np.uint8)
+
+
+    #cv2.imshow(tipo_da_transformacao, magnitude_spectrum)
+    if passa="passa_baixa":
+        passa_baixa(fshift, centro, r_max)
+    elif passa="passa_alta":
+        passa_alta(fshift, centro, r_min)
+    else:
+        passa_banda(fshift, centro, r_min, r_max)
+
+
+    f_ishift = np.fft.ifftshift(fshift)
+    imagem_alterada = np.fft.ifft2(f_ishift).astype(np.uint8)
+
+def Hough(imagem_alterada, tipo):
+    #imagem que é recebida por essa funçao já é uma Extracao de contorno
+    if tipo=="normal":
+        lines = cv2.HoughLines(imagem_alterada,1,np.pi/180,260)
+
+        #print lines
+
+        for line in lines:
+            for rho,theta in line:
+                a = np.cos(theta)
+                b = np.sin(theta)
+                x0 = a*rho
+                y0 = b*rho
+                x1 = int(x0 + 1000*(-b))
+                y1 = int(y0 + 1000*(a))
+                x2 = int(x0 - 1000*(-b))
+                y2 = int(y0 - 1000*(a))
+
+                cv2.line(imagem_alterada,(x1,y1),(x2,y2),(255),2)
+    else:
+        minLineLength = 100
+        maxLineGap = 10
+        lines = cv2.HoughLinesP(imagem_alterada,1,np.pi/180,100,minLineLength,maxLineGap)
+        #print lines
+        for line in lines:
+            for x1,y1,x2,y2 in line:
+                for x in range(x1,x2):
+                    y=((y2-y1)+0.0/(x2-x1)+0.0)*(x-x1)+y1
+                    verifica_e_remove_pixel_proximo(x,int(y),imagem_alterada)
+                cv2.line(imagem_alterada ,(x1,y1),(x2,y2),(255),2)
 
 
 #ordem das cores na imagem
@@ -143,102 +225,53 @@ def verifica_e_remove_pixel_proximo(x,y,imagem):
 #shape[1] é a largura, eixo x
 
 if __name__ == '__main__':
-    tipo_da_transformacao="Hough"
-    nome_da_imagem="mikasa_cosplay"
 
-    TRANSFORMACAO="hough"
-
-    imagem = cv2.imread("imagens/"+nome_da_imagem+".jpg")
-    print (imagem.shape)
-
-    #cria uma imagem preta com o tamanho da imagem original para armazenar as alterações feitas na imagem original
-    imagem_alterada = np.zeros((imagem.shape[0], imagem.shape[1], 3), dtype=np.uint8)
-
-    #cv2.imshow("original", imagem)
-
-    #TESTES DE TRASFORMACOES
-
-    #transforma a imagem em escalas de cinza
-    imagem_alterada=cv2.cvtColor(imagem, cv2.COLOR_BGR2GRAY)
-
-    cv2.imshow("original", imagem_alterada)
-    #print imagem_alterada
-
-    centro=[imagem.shape[0]/2.0, imagem.shape[1]/2.0]
-
-    ##########Rotações:
-    if TRANSFORMACAO=="rotacao":
-        #rotacao_direta(centro, matriz_rotacao(45), imagem, imagem_alterada)
-        rotacao_interpolada(centro, matriz_inversa_rotacao(3600), imagem, imagem_alterada)
-
-    ###########Twirl:
-    elif TRANSFORMACAO=="twirl":
-        alpha=np.pi/2
-        twirl(centro, imagem, imagem_alterada, alpha)
-
-    ############Fourier:
-    elif TRANSFORMACAO=="fourier":
-        r_max=100
-        r_min=50
-
-        f = np.fft.fft2(imagem_alterada)
-        fshift = np.fft.fftshift(f)
-
-        #cv2.imshow("fshift", fshift.astype(np.uint8))
-
-        #print "AAAAAAAAAAA"
-        #print fshift.shape
-
-        #magnitude_spectrum = (20*np.log(np.abs(fshift))).astype(np.uint8)
+    #setups de variaveis que irão para teste
+    nome_das_imagens=[f for f in os.listdir("imagens")]
+    passas=["passa_baixa","passa_alta","passa_banda"]
+    tipo_da_transformacao="Combinadas"
+    treshholds=[100, 150, 200]
+    #nome_da_imagem="janela2"
 
 
-        #cv2.imshow(tipo_da_transformacao, magnitude_spectrum)
+    for nome_da_imagem in nome_das_imagens:
+        for passa in passas:
+            for treshhold in treshholds:
+                pasta=nome_da_imagem.split(".")[0]
+                imagem = cv2.imread("imagens/"+nome_da_imagem)
+                print imagem.shape
 
-        passa_baixa(fshift, centro, r_max)
-        #passa_alta(fshift, centro, r_min)
-        #passa_banda(fshift, centro, r_min, r_max)
+                #cria uma imagem preta com o tamanho da imagem original para armazenar as alterações feitas na imagem original
+                imagem_alterada = np.zeros((imagem.shape[0], imagem.shape[1], 3), dtype=np.uint8)
+
+                #cv2.imshow("original_com_cor", imagem)
+
+                #transforma a imagem em escalas de cinza
+                imagem = cv2.cvtColor(imagem, cv2.COLOR_BGR2GRAY)
+
+                cv2.imshow("original", imagem_alterada)
+                #print imagem_alterada
+
+                centro=[imagem.shape[0]/2.0, imagem.shape[1]/2.0]
+
+                ########INICIO DAS TRASFORMACOES############
+
+                ############Extração de contorno
+
+                sobel_treshhold(imagem, imagem_alterada, treshhold)
+
+                ############Fourier:
+                Fourier(imagem_alterada, passa)
 
 
-        f_ishift = np.fft.ifftshift(fshift)
-        imagem_alterada = np.fft.ifft2(f_ishift).astype(np.uint8)
+                ##############Hough:
+                Hough(imagem_alterada, "P")
 
+                ##############Esqueletizacao
 
+                ###INSERIR
 
-    ##############Hough:
-    elif TRANSFORMACAO=="hough":
-        edges = cv2.Canny(imagem_alterada,50,150,apertureSize = 3)
+                cv2.imshow("retorno", imagem_alterada)
+                cv2.waitKey(0)
 
-        #cv2.imshow("canny", edges)
-        p=1
-
-        if not(p):
-            lines = cv2.HoughLines(edges,1,np.pi/180,260)
-            print (lines)
-            for line in lines:
-                for rho,theta in line:
-                    a = np.cos(theta)
-                    b = np.sin(theta)
-                    x0 = a*rho
-                    y0 = b*rho
-                    x1 = int(x0 + 1000*(-b))
-                    y1 = int(y0 + 1000*(a))
-                    x2 = int(x0 - 1000*(-b))
-                    y2 = int(y0 - 1000*(a))
-
-                    cv2.line(edges,(x1,y1),(x2,y2),(255),2)
-        else:
-            minLineLength = 100
-            maxLineGap = 10
-            lines = cv2.HoughLinesP(edges,1,np.pi/180,100,minLineLength,maxLineGap)
-            print (lines)
-            for line in lines:
-                for x1,y1,x2,y2 in line:
-                    for x in range(x1,x2):
-                        y=((y2-y1)+0.0/(x2-x1)+0.0)*(x-x1)+y1
-                        verifica_e_remove_pixel_proximo(x,int(y),edges)
-                    cv2.line(edges ,(x1,y1),(x2,y2),(255),2)
-
-    cv2.imshow("retorno", edges)
-    cv2.waitKey(0)
-
-    #cv2.imwrite("transformacoes/"+tipo_da_transformacao+"_"+nome_da_imagem+".jpg", imagem_alterada)
+                cv2.imwrite("transformacoes/"+pasta+"/"+treshhold+"_"+passa+"_"+nome_da_imagem, imagem_alterada)
