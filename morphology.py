@@ -34,14 +34,14 @@ def dilation_or_erosion(binary_image, se, hit, erode_border=False):
                             break
                         continue
                     if (hit and binary_image[i + p][j + q]) or \
-                       (not hit and not binary_image[i + p][j + q]):
+                       (not hit and not binary_image[i + p, j + q]):
                         do_hit_or_fit = True
                         break
                 if do_hit_or_fit:
                     break
             if do_hit_or_fit:
                 if hit:
-                    new_image[i][j] = 1
+                    new_image[i][j] = 255
                 else:
                     new_image[i][j] = 0
     return new_image
@@ -79,7 +79,7 @@ def add_images(image1, image2):
     for i in range(0, height):
         for j in range(0, width):
             if image2[i][j]:
-                new_image[i][j] = 1
+                new_image[i][j] = 255
     return new_image
 
 
@@ -108,21 +108,21 @@ def skeletonization(binary_image, se):
 if __name__ == "__main__":
     print("testing routines")
     test_image = np.zeros(shape=(12, 12))
-    test_image[1][10] = 1
+    test_image[1][10] = 255
     for n in range(2, 5):
-        test_image[2][n] = 1
-        test_image[3][n + 1] = 1
-        test_image[10][n + 4] = 1
+        test_image[2][n] = 255
+        test_image[3][n + 1] = 255
+        test_image[10][n + 4] = 255
     for m in range(4, 10):
         for n in range(2, 7):
-            test_image[m][n] = 1
+            test_image[m][n] = 255
     test_image[5][2] = 0
     test_image[5][4] = 0
     test_image[9][3] = 0
-    test_image[5][7] = 1
-    test_image[5][8] = 1
-    test_image[6][7] = 1
-    test_image[6][8] = 1
+    test_image[5][7] = 255
+    test_image[5][8] = 255
+    test_image[6][7] = 255
+    test_image[6][8] = 255
     se_3 = np.ones(shape=(3, 3))
     print(test_image)
     print(' ')

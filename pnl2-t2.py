@@ -1,4 +1,4 @@
-import image_processing
+import edge_detection
 import morphology
 import numpy as np
 import os
@@ -19,8 +19,8 @@ se_3x3[2][2] = 0
 
 if __name__ == "__main__":
     image_address = os.getcwd() + image_text_gif
-    image_array = image_processing.prepare_image(image_address, True, True, print_flag=True)
-    image_processing.save_image(image_array, 'binary', image_address, binary_image=True)
+    image_array = edge_detection.prepare_image(image_address, True, True, print_flag=True)
+    edge_detection.save_image(image_array, 'binary', image_address, binary_image=True)
     skeletonized_image = morphology.skeletonization(image_array, se_3x3)
-    image_processing.save_image(skeletonized_image, "skeleton", image_address, binary_image=True)
+    edge_detection.save_image(skeletonized_image, "skeleton", image_address, binary_image=True)
 

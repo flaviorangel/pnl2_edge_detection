@@ -138,22 +138,23 @@ def passa_banda(imagem_frequencia, centro, r_min, r_max):
 
 if __name__ == '__main__':
     tipo_da_transformacao="fourier"
-    nome_da_imagem="mikasa_cosplay"
+    # nome_da_imagem="mikasa_cosplay"
+    nome_da_imagem = "rain_portrait"
 
     imagem = cv2.imread("imagens/"+nome_da_imagem+".jpg")
-    print imagem.shape
+    print(imagem.shape)
 
     #cria uma imagem preta com o tamanho da imagem original para armazenar as alterações feitas na imagem original
     imagem_alterada = np.zeros((imagem.shape[0], imagem.shape[1], 3), dtype=np.uint8)
 
-    #cv2.imshow("original", imagem)
+    cv2.imshow("original", imagem)
 
     #TESTES DE TRASFORMACOES
 
     #transforma a imagem em escalas de cinza
     imagem_alterada=cv2.cvtColor(imagem, cv2.COLOR_BGR2GRAY)
 
-    cv2.imshow("original", imagem_alterada)
+    cv2.imshow("cinza", imagem_alterada)
     #print imagem_alterada
     ##########Rotações:
     centro=[imagem.shape[0]/2.0, imagem.shape[1]/2.0]
@@ -185,9 +186,9 @@ if __name__ == '__main__':
 
     #cv2.imshow(tipo_da_transformacao, magnitude_spectrum)
 
-    #passa_baixa(fshift, centro, r_max)
-    #passa_alta(fshift, centro, r_min)
-    passa_banda(fshift, centro, r_min, r_max)
+    passa_baixa(fshift, centro, r_max)
+    # passa_alta(fshift, centro, r_min)
+    # passa_banda(fshift, centro, r_min, r_max)
 
 
     f_ishift = np.fft.ifftshift(fshift)

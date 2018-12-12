@@ -2,6 +2,8 @@
 import numpy as np
 import cv2
 import math
+import edge_detection
+import morphology
 from matplotlib import pyplot as plt
 import os
 
@@ -174,9 +176,9 @@ def Fourier(imagem_alterada, passa, r_max=100, r_min=50 ):
 
 
     #cv2.imshow(tipo_da_transformacao, magnitude_spectrum)
-    if passa="passa_baixa":
+    if passa=="passa_baixa":
         passa_baixa(fshift, centro, r_max)
-    elif passa="passa_alta":
+    elif passa=="passa_alta":
         passa_alta(fshift, centro, r_min)
     else:
         passa_banda(fshift, centro, r_min, r_max)
@@ -184,6 +186,7 @@ def Fourier(imagem_alterada, passa, r_max=100, r_min=50 ):
 
     f_ishift = np.fft.ifftshift(fshift)
     imagem_alterada = np.fft.ifft2(f_ishift).astype(np.uint8)
+    return imagem_alterada
 
 def Hough(imagem_alterada, tipo):
     #imagem que é recebida por essa funçao já é uma Extracao de contorno
@@ -230,7 +233,7 @@ if __name__ == '__main__':
     nome_das_imagens=[f for f in os.listdir("imagens")]
     passas=["passa_baixa","passa_alta","passa_banda"]
     tipo_da_transformacao="Combinadas"
-    treshholds=[100, 150, 200]
+    treshholds=[25, 50, 100]
     #nome_da_imagem="janela2"
 
 
@@ -239,39 +242,70 @@ if __name__ == '__main__':
             for treshhold in treshholds:
                 pasta=nome_da_imagem.split(".")[0]
                 imagem = cv2.imread("imagens/"+nome_da_imagem)
-                print imagem.shape
 
-                #cria uma imagem preta com o tamanho da imagem original para armazenar as alterações feitas na imagem original
-                imagem_alterada = np.zeros((imagem.shape[0], imagem.shape[1], 3), dtype=np.uint8)
+                cv2.imshow("original_com_cor", imagem)
+                # cv2.waitKey(0)
 
-                #cv2.imshow("original_com_cor", imagem)
 
                 #transforma a imagem em escalas de cinza
                 imagem = cv2.cvtColor(imagem, cv2.COLOR_BGR2GRAY)
 
-                cv2.imshow("original", imagem_alterada)
+                cv2.imshow("original", imagem)
+                # cv2.waitKey(0)
+
                 #print imagem_alterada
 
                 centro=[imagem.shape[0]/2.0, imagem.shape[1]/2.0]
 
                 ########INICIO DAS TRASFORMACOES############
 
+                ############Fourier:
+                imagem = Fourier(imagem, passa)
+
+                cv2.imshow("fourier", imagem)
+                # cv2.waitKey(0)
+
+                cv2.imwrite("transformacoes/" + pasta + "/" + str(
+                    treshhold) + "_" + passa + "_" + nome_da_imagem + "_fourier",
+                            imagem)
+
                 ############Extração de contorno
 
+                #cria uma imagem preta com o tamanho da imagem original para armazenar as alterações feitas na imagem original
+                imagem_alterada = np.zeros((imagem.shape[0], imagem.shape[1]), dtype=np.uint8)
+
                 sobel_treshhold(imagem, imagem_alterada, treshhold)
+                cv2.imshow("edge", imagem_alterada)
+                # cv2.waitKey(0)
 
-                ############Fourier:
-                Fourier(imagem_alterada, passa)
-
-
-                ##############Hough:
-                Hough(imagem_alterada, "P")
+                cv2.imwrite("transformacoes/" + pasta + "/" + str(treshhold) + "_" + passa + "_" + nome_da_imagem + "_edge_detection",
+                            imagem_alterada)
 
                 ##############Esqueletizacao
 
+                # elemento estruturante
+                se_3 = np.ones(shape=(3, 3))
+                se_3[0, 0] = 0
+                se_3[2, 0] = 0
+                se_3[0, 2] = 0
+                se_3[2, 2] = 0
+                imagem = morphology.skeletonization(imagem_alterada, se_3)
+
+                cv2.imshow("skeleton", imagem)
+                # cv2.waitKey(0)
+
+                cv2.imwrite("transformacoes/" + pasta + "/" + str(treshhold) + "_" + passa + "_" + nome_da_imagem + "_skeletonization",
+                            imagem)
+
+
+                ##############Hough:
+                imagem = cv2.cvtColor(imagem, cv2.COLOR_BGR2GRAY)
+
+                Hough(imagem, "P")
+
                 ###INSERIR
 
-                cv2.imshow("retorno", imagem_alterada)
+                cv2.imshow("retorno", imagem)
                 cv2.waitKey(0)
 
-                cv2.imwrite("transformacoes/"+pasta+"/"+treshhold+"_"+passa+"_"+nome_da_imagem, imagem_alterada)
+                cv2.imwrite("transformacoes/"+pasta+"/"+str(treshhold)+"_"+passa+"_"+nome_da_imagem, imagem)
