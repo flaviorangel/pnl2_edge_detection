@@ -188,6 +188,25 @@ def Fourier(imagem_alterada, passa, r_max=100, r_min=50 ):
     imagem_alterada = np.fft.ifft2(f_ishift).astype(np.uint8)
     return imagem_alterada
 
+
+def binarizacao(imagem, treshhold=50):
+    #substitui os valores da imagem por 1 e 0.
+    for y in range(0, imagem.shape[0]): #percorre linhas da imagem alterada
+        for x in range(0, imagem.shape[1]): #percorre colunas da imagem alterada
+            if imagem[y,x] < treshhold:
+                imagem[y,x]=0
+            else:
+                imagem[y,x]=1
+
+
+def retorno_binarizacao(imagem):
+    #substitui os valores da imagem por 255 e 0.
+    for y in range(0, imagem.shape[0]): #percorre linhas da imagem alterada
+        for x in range(0, imagem.shape[1]): #percorre colunas da imagem alterada
+            if imagem[y,x]:
+                imagem[y,x]=255
+
+
 def Hough(imagem_alterada, tipo):
     #imagem que é recebida por essa funçao já é uma Extracao de contorno
     if tipo=="normal":
@@ -233,7 +252,7 @@ if __name__ == '__main__':
     nome_das_imagens=[f for f in os.listdir("imagens")]
     passas=["passa_baixa","passa_alta","passa_banda"]
     tipo_da_transformacao="Combinadas"
-    treshholds=[25, 50, 100]
+    treshholds=[50, 100, 150]
     #nome_da_imagem="janela2"
 
 
@@ -243,9 +262,15 @@ if __name__ == '__main__':
                 pasta=nome_da_imagem.split(".")[0]
                 imagem = cv2.imread("imagens/"+nome_da_imagem)
 
-                cv2.imshow("original_com_cor", imagem)
+                # cv2.imshow("original_com_cor", imagem)
                 # cv2.waitKey(0)
 
+                endereco = os.getcwd() + "/transformacoes/" + pasta + "/"
+
+                if not os.path.exists(endereco):
+                    os.makedirs(endereco)
+
+                endereco += str(treshhold) + "_" + passa + "_" + nome_da_imagem
 
                 #transforma a imagem em escalas de cinza
                 imagem = cv2.cvtColor(imagem, cv2.COLOR_BGR2GRAY)
@@ -259,27 +284,32 @@ if __name__ == '__main__':
 
                 ########INICIO DAS TRASFORMACOES############
 
+                ############Extração de contorno
+
+                # cria uma imagem preta com o tamanho da imagem original para armazenar as alterações feitas na imagem original
+                imagem_alterada = np.zeros((imagem.shape[0], imagem.shape[1]), dtype=np.uint8)
+
+                sobel_treshhold(imagem, imagem_alterada, treshhold)
+
+                cv2.imshow("edge", imagem_alterada)
+                # cv2.waitKey(0)
+
+                edge_detection.save_image(imagem_alterada, "_edge", endereco)
+                # cv2.imwrite(os.getcwd() + "/transformacoes/" + pasta + "/" + str(
+                #     treshhold) + "_" + passa + "_" + nome_da_imagem + "_edge_detection",
+                #             imagem_alterada)
+
                 ############Fourier:
-                imagem = Fourier(imagem, passa)
+                imagem = Fourier(imagem_alterada, passa)
 
                 cv2.imshow("fourier", imagem)
                 # cv2.waitKey(0)
 
-                cv2.imwrite("transformacoes/" + pasta + "/" + str(
-                    treshhold) + "_" + passa + "_" + nome_da_imagem + "_fourier",
-                            imagem)
+                edge_detection.save_image(imagem, "_fourier", endereco)
+                # cv2.imwrite(os.getcwd() + "/transformacoes/" + pasta + "/" + str(
+                #     treshhold) + "_" + passa + "_" + nome_da_imagem + "_fourier",
+                #             imagem)
 
-                ############Extração de contorno
-
-                #cria uma imagem preta com o tamanho da imagem original para armazenar as alterações feitas na imagem original
-                imagem_alterada = np.zeros((imagem.shape[0], imagem.shape[1]), dtype=np.uint8)
-
-                sobel_treshhold(imagem, imagem_alterada, treshhold)
-                cv2.imshow("edge", imagem_alterada)
-                # cv2.waitKey(0)
-
-                cv2.imwrite("transformacoes/" + pasta + "/" + str(treshhold) + "_" + passa + "_" + nome_da_imagem + "_edge_detection",
-                            imagem_alterada)
 
                 ##############Esqueletizacao
 
@@ -289,23 +319,26 @@ if __name__ == '__main__':
                 se_3[2, 0] = 0
                 se_3[0, 2] = 0
                 se_3[2, 2] = 0
-                imagem = morphology.skeletonization(imagem_alterada, se_3)
+                imagem = morphology.skeletonization(imagem, se_3)
 
                 cv2.imshow("skeleton", imagem)
                 # cv2.waitKey(0)
 
-                cv2.imwrite("transformacoes/" + pasta + "/" + str(treshhold) + "_" + passa + "_" + nome_da_imagem + "_skeletonization",
-                            imagem)
+                edge_detection.save_image(imagem, "_edge", endereco)
+                # cv2.imwrite(os.getcwd() + "/transformacoes/" + pasta + "/" + str(treshhold) + "_" + passa + "_" + nome_da_imagem + "_skeletonization",
+                #             imagem)
 
 
                 ##############Hough:
-                imagem = cv2.cvtColor(imagem, cv2.COLOR_BGR2GRAY)
+                binarizacao(imagem)
 
                 Hough(imagem, "P")
+
+                retorno_binarizacao(imagem)
 
                 ###INSERIR
 
                 cv2.imshow("retorno", imagem)
                 cv2.waitKey(0)
 
-                cv2.imwrite("transformacoes/"+pasta+"/"+str(treshhold)+"_"+passa+"_"+nome_da_imagem, imagem)
+                cv2.imwrite(os.getcwd() + "/transformacoes/"+pasta+"/"+str(treshhold)+"_"+passa+"_"+nome_da_imagem, imagem)
