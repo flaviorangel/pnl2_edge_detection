@@ -1,6 +1,7 @@
 from PIL import Image
 import math
 import numpy as np
+import time
 
 
 def switch_black_and_white(binary_image_array):
@@ -36,7 +37,7 @@ def prepare_image(image_address, binary=False, switch_black_white=False, print_f
     return image_as_array
 
 
-def save_image(image_as_array, suffix, new_address, binary_image=False, print_flag=True):
+def save_image(image_as_array, suffix, new_address, binary_image=False, print_flag=True, wait_time=True):
     """Saves a numpy array as an image in the given address.
     Address must include name saving type (i.e., png, jpg, gif...).
 
@@ -45,6 +46,7 @@ def save_image(image_as_array, suffix, new_address, binary_image=False, print_fl
     :param new_address: string. Where to save the image. Must include name and type.
     :param binary_image: boolean. If True, the given array has only 0s and 1s.
     :param print_flag: boolean. If True, it will print where the image was saved.
+    :param wait_time: boolean. Waits a few seconds after saving if True.
     """
     if binary_image:
         image_as_array = image_as_array * 255
@@ -54,6 +56,8 @@ def save_image(image_as_array, suffix, new_address, binary_image=False, print_fl
     return_image.save(new_address[:-4] + "_" + suffix + new_address[-4:])
     if print_flag:
         print("image saved: " + new_address[:-4] + "_" + suffix + new_address[-4:])
+    if wait_time:
+        time.sleep(2)
 
 
 def interpol_lin(image_as_array, location_matrix, transformation_name, height, width, my_image, black=False):
@@ -134,17 +138,25 @@ def detect_edges_sobel(image_address, threshold=50):
     return_image.save(image_address[:-4] + "_" + "edges_sobel_" + str(threshold) + image_address[-4:])
 
 
-def detect_edges_prewitt(image_address, threshold=50):
+def detect_edges_prewitt(image_address, load_from_address=True, threshold=50, save_image=False):
     """Given an image location, detect its edges using Prewitt method.
 
-    :param image_address: Location of the image.
+    :param image_address: Location of the image or image as array.
+    :param load_from_address: boolean. If True, loads image from address. Otherwise, image as array should be in
+    image_address.
     :param threshold: The lower it is, the more parts of the image will be detected as edges.
+    :param save_image: boolean. If True, saves image.
     """
     print("detecting edges prewitt method")
-    im = Image.open(image_address)
-    im_as_array = prepare_image(image_address)
-    width, height = im.size
-    edges_image = np.copy(im_as_array)
+    if load_from_address:
+        im = Image.open(image_address)
+        im_as_array = prepare_image(image_address)
+        width, height = im.size
+    else:
+        im_as_array = image_address
+        height = len(image_address)
+        width = len(image_address[0])
+    edges_image = np.zeros((im_as_array.shape[0], im_as_array.shape[1]), dtype=np.uint8)
     for i in range(1, height-1):
         for j in range(1, width-1):
             for k in range(0, 3):
@@ -166,13 +178,11 @@ def detect_edges_prewitt(image_address, threshold=50):
                     + int(im_as_array[i][j-1][k]) + int(im_as_array[i-1][j-1][k]) + int(im_as_array[i+1][j][k])
                 m = max(m1, m2, m3, m4, m5, m6, m7, m8)
                 if m > threshold:
-                    edges_image[i][j][0] = 0
-                    edges_image[i][j][1] = 0
-                    edges_image[i][j][2] = 0
+                    edges_image[i][j] = 0
                     break
                 elif k == 2:
-                    edges_image[i][j][0] = 255
-                    edges_image[i][j][1] = 255
-                    edges_image[i][j][2] = 255
-    return_image = Image.fromarray(edges_image)
-    return_image.save(image_address[:-4] + "_" + "edges_prewitt_" + str(threshold) + image_address[-4:])
+                    edges_image[i][j] = 255
+    if save_image:
+        return_image = Image.fromarray(edges_image)
+        return_image.save(image_address[:-4] + "_" + "edges_prewitt_" + str(threshold) + image_address[-4:])
+    return edges_image

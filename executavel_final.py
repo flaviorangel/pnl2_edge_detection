@@ -229,7 +229,7 @@ def Hough(imagem_alterada, tipo):
     else:
         minLineLength = 100
         maxLineGap = 10
-        lines = cv2.HoughLinesP(imagem_alterada,1,np.pi/180,100,minLineLength,maxLineGap)
+        lines = cv2.HoughLinesP(imagem_alterada,1,np.pi/180,100) #,minLineLength,maxLineGap)
         #print lines
         for line in lines:
             for x1,y1,x2,y2 in line:
@@ -273,7 +273,7 @@ if __name__ == '__main__':
                 endereco += str(treshhold) + "_" + passa + "_" + nome_da_imagem
 
                 #transforma a imagem em escalas de cinza
-                imagem = cv2.cvtColor(imagem, cv2.COLOR_BGR2GRAY)
+                # imagem = cv2.cvtColor(imagem, cv2.COLOR_BGR2GRAY)
 
                 cv2.imshow("original", imagem)
                 # cv2.waitKey(0)
@@ -287,20 +287,21 @@ if __name__ == '__main__':
                 ############Extração de contorno
 
                 # cria uma imagem preta com o tamanho da imagem original para armazenar as alterações feitas na imagem original
-                imagem_alterada = np.zeros((imagem.shape[0], imagem.shape[1]), dtype=np.uint8)
+                # imagem_alterada = np.zeros((imagem.shape[0], imagem.shape[1]), dtype=np.uint8)
 
-                sobel_treshhold(imagem, imagem_alterada, treshhold)
+                # sobel_treshhold(imagem, imagem_alterada, treshhold)
+                imagem = edge_detection.detect_edges_prewitt(imagem, load_from_address=False, threshold=treshhold)
 
-                cv2.imshow("edge", imagem_alterada)
+                cv2.imshow("edge", imagem)
                 # cv2.waitKey(0)
 
-                edge_detection.save_image(imagem_alterada, "_edge", endereco)
+                edge_detection.save_image(imagem, "_edge", endereco)
                 # cv2.imwrite(os.getcwd() + "/transformacoes/" + pasta + "/" + str(
                 #     treshhold) + "_" + passa + "_" + nome_da_imagem + "_edge_detection",
                 #             imagem_alterada)
 
                 ############Fourier:
-                imagem = Fourier(imagem_alterada, passa)
+                imagem = Fourier(imagem, passa)
 
                 cv2.imshow("fourier", imagem)
                 # cv2.waitKey(0)
@@ -324,7 +325,7 @@ if __name__ == '__main__':
                 cv2.imshow("skeleton", imagem)
                 # cv2.waitKey(0)
 
-                edge_detection.save_image(imagem, "_edge", endereco)
+                edge_detection.save_image(imagem, "_skeleton", endereco)
                 # cv2.imwrite(os.getcwd() + "/transformacoes/" + pasta + "/" + str(treshhold) + "_" + passa + "_" + nome_da_imagem + "_skeletonization",
                 #             imagem)
 
@@ -336,9 +337,8 @@ if __name__ == '__main__':
 
                 retorno_binarizacao(imagem)
 
-                ###INSERIR
-
                 cv2.imshow("retorno", imagem)
                 cv2.waitKey(0)
 
-                cv2.imwrite(os.getcwd() + "/transformacoes/"+pasta+"/"+str(treshhold)+"_"+passa+"_"+nome_da_imagem, imagem)
+                cv2.imwrite(os.getcwd() + "/transformacoes/"+pasta+"/"+str(treshhold)+"_"+passa+"_"+nome_da_imagem,
+                            imagem)
