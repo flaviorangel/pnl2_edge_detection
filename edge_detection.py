@@ -178,10 +178,10 @@ def detect_edges_prewitt(image_address, load_from_address=True, threshold=50, sa
                     + int(im_as_array[i][j-1][k]) + int(im_as_array[i-1][j-1][k]) + int(im_as_array[i+1][j][k])
                 m = max(m1, m2, m3, m4, m5, m6, m7, m8)
                 if m > threshold:
-                    edges_image[i][j] = 0
+                    edges_image[i][j] = 255
                     break
                 elif k == 2:
-                    edges_image[i][j] = 255
+                    edges_image[i][j] = 0
     if save_image:
         return_image = Image.fromarray(edges_image)
         return_image.save(image_address[:-4] + "_" + "edges_prewitt_" + str(threshold) + image_address[-4:])
