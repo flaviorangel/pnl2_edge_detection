@@ -231,12 +231,13 @@ def Hough(imagem_alterada, tipo):
         maxLineGap = 10
         lines = cv2.HoughLinesP(imagem_alterada,1,np.pi/180,100,minLineLength,maxLineGap)
         print(lines)
-        for line in lines:
-            for x1,y1,x2,y2 in line:
-                for x in range(x1,x2):
-                    y=((y2-y1)+0.0/(x2-x1)+0.0)*(x-x1)+y1
-                    verifica_e_remove_pixel_proximo(x,int(y),imagem_alterada)
-                cv2.line(imagem_alterada ,(x1,y1),(x2,y2),(255),2)
+        if len(lines):
+            for line in lines:
+                for x1,y1,x2,y2 in line:
+                    for x in range(x1,x2):
+                        y=((y2-y1)+0.0/(x2-x1)+0.0)*(x-x1)+y1
+                        verifica_e_remove_pixel_proximo(x,int(y),imagem_alterada)
+                    cv2.line(imagem_alterada ,(x1,y1),(x2,y2),(255),2)
 
 
 #ordem das cores na imagem
@@ -250,11 +251,17 @@ if __name__ == '__main__':
 
     #setups de variaveis que irão para teste
     nome_das_imagens=[f for f in os.listdir("imagens")]
-    passas=["passa_baixa","passa_alta","passa_banda"]
+    # passas=["passa_baixa","passa_alta","passa_banda"]
+    passas = ["sempassa"]
     tipo_da_transformacao="Combinadas"
     treshholds=[50, 100, 150]
     #nome_da_imagem="janela2"
 
+    #W- Contorno
+    #Q- Fourier
+    #F- Hough
+    #J- Esqueletizacao
+    operacoes = "WFJ_"
 
     for nome_da_imagem in nome_das_imagens:
         for passa in passas:
@@ -270,12 +277,12 @@ if __name__ == '__main__':
                 if not os.path.exists(endereco):
                     os.makedirs(endereco)
 
-                endereco += str(treshhold) + "_" + passa + "_" + nome_da_imagem
+                endereco += operacoes + str(treshhold) + "_" + passa + "_" + nome_da_imagem
 
                 #transforma a imagem em escalas de cinza
                 # imagem = cv2.cvtColor(imagem, cv2.COLOR_BGR2GRAY)
 
-                cv2.imshow("original", imagem)
+                # cv2.imshow("original", imagem)
                 # cv2.waitKey(0)
 
                 #print imagem_alterada
@@ -284,16 +291,16 @@ if __name__ == '__main__':
 
                 ########INICIO DAS TRASFORMACOES############
 
-                ############Fourier:
-                imagem = Fourier(imagem, passa)
-
-                cv2.imshow("fourier", imagem)
-                # cv2.waitKey(0)
-
-                edge_detection.save_image(imagem, "_fourier", endereco)
-                # cv2.imwrite(os.getcwd() + "/transformacoes/" + pasta + "/" + str(
-                #     treshhold) + "_" + passa + "_" + nome_da_imagem + "_fourier",
-                #             imagem)
+                # ############Fourier:
+                # imagem = Fourier(imagem, passa)
+                #
+                # cv2.imshow("fourier", imagem)
+                # # cv2.waitKey(0)
+                #
+                # edge_detection.save_image(imagem, "_fourier", endereco)
+                # # cv2.imwrite(os.getcwd() + "/transformacoes/" + pasta + "/" + str(
+                # #     treshhold) + "_" + passa + "_" + nome_da_imagem + "_fourier",
+                # #             imagem)
 
                 ############Extração de contorno
 
@@ -303,13 +310,25 @@ if __name__ == '__main__':
                 # sobel_treshhold(imagem, imagem_alterada, treshhold)
                 imagem = edge_detection.detect_edges_prewitt(imagem, load_from_address=False, threshold=treshhold)
 
-                cv2.imshow("edge", imagem)
+                # cv2.imshow("edge", imagem)
                 # cv2.waitKey(0)
 
                 edge_detection.save_image(imagem, "_edge", endereco)
                 # cv2.imwrite(os.getcwd() + "/transformacoes/" + pasta + "/" + str(
                 #     treshhold) + "_" + passa + "_" + nome_da_imagem + "_edge_detection",
                 #             imagem_alterada)
+
+                ##############Hough:
+                # binarizacao(imagem)
+
+                Hough(imagem, "P")
+
+                # retorno_binarizacao(imagem)
+
+                # cv2.imshow("retorno", imagem)
+                # cv2.waitKey(0)
+
+                edge_detection.save_image(imagem, "_hough", endereco)
 
                 ##############Esqueletizacao
 
@@ -321,7 +340,7 @@ if __name__ == '__main__':
                 se_3[2, 2] = 0
                 imagem = morphology.skeletonization(imagem, se_3)
 
-                cv2.imshow("skeleton", imagem)
+                # cv2.imshow("skeleton", imagem)
                 # cv2.waitKey(0)
 
                 edge_detection.save_image(imagem, "_skeleton", endereco)
@@ -329,15 +348,3 @@ if __name__ == '__main__':
                 #             imagem)
 
 
-                ##############Hough:
-                binarizacao(imagem)
-
-                Hough(imagem, "P")
-
-                retorno_binarizacao(imagem)
-
-                cv2.imshow("retorno", imagem)
-                cv2.waitKey(0)
-
-                cv2.imwrite(os.getcwd() + "/transformacoes/"+pasta+"/"+str(treshhold)+"_"+passa+"_"+nome_da_imagem,
-                            imagem)
