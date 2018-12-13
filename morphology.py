@@ -92,7 +92,7 @@ def skeletonization(binary_image, se):
     """
     height = len(binary_image)
     width = len(binary_image[0])
-    skeletonizated_image = np.zeros(shape=(height, width))
+    skeletonizated_image = np.zeros(shape=(height, width), dtype=np.uint8)
     eroded_image = np.copy(binary_image)
     while True:
         eroded_image = dilation_or_erosion(eroded_image, se, False, erode_border=True)
